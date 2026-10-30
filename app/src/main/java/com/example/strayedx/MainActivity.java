@@ -1,13 +1,13 @@
- package com.example.strayedx;
+package com.example.strayedx;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.Rect;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.*;
 import android.content.SharedPreferences;
@@ -18,50 +18,71 @@ import java.util.Collections;
 
 public class MainActivity extends Activity {
 
-    private FrameLayout root;
     private LinearLayout page;
+    private LinearLayout content;
     private SharedPreferences prefs;
 
     private int theme;
     private int buttonSize;
-    private boolean editMode = false;
+
+    private boolean hiddenLasers;
+
+    private int laserColor;
 
     private ArrayList<String> menuItems = new ArrayList<>();
 
     private final String[] defaults = {
-        "TOOLS", "SETTINGS", "ABOUT", "EXIT"
+        "TOOLS", "CHEATS", "SETTINGS", "ABOUT", "EXIT"
     };
 
-    private int[] colors = {
+    private final int[] colors = {
         Color.GREEN,
         Color.CYAN,
         Color.RED,
         Color.MAGENTA,
         Color.YELLOW,
-        Color.WHITE
+        Color.WHITE,
+        Color.rgb(212, 175, 55)
+    };
+
+    private final String[] colorNames = {
+        "GREEN", "CYAN", "RED", "PURPLE",
+        "YELLOW", "WHITE", "GOLD"
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        prefs = getSharedPreferences("StrayedXUltimate", MODE_PRIVATE);
+        prefs = getSharedPreferences(
+            "StrayedXUltimate", MODE_PRIVATE
+        );
 
         theme = prefs.getInt("theme", 0);
         buttonSize = prefs.getInt("buttonSize", 18);
+
+        hiddenLasers = prefs.getBoolean(
+            "hiddenLasers", false
+        );
+
+        laserColor = prefs.getInt("laserColor", 0);
 
         loadMenu();
         showHome();
     }
 
     private int accent() {
-        return colors[Math.max(0, Math.min(theme, colors.length - 1))];
+        return colors[Math.max(
+            0, Math.min(theme, colors.length - 1)
+        )];
     }
 
     private void saveSettings() {
         prefs.edit()
             .putInt("theme", theme)
             .putInt("buttonSize", buttonSize)
+            .putBoolean("hiddenLasers", hiddenLasers)
+            .putInt("laserColor", laserColor)
             .apply();
     }
 
@@ -73,40 +94,61 @@ public class MainActivity extends Activity {
         } else {
             Collections.addAll(menuItems, saved.split("\\|"));
         }
+
+        if (!menuItems.contains("CHEATS")) {
+            menuItems.add(1, "CHEATS");
+            saveMenu();
+        }
     }
 
     private void saveMenu() {
         StringBuilder result = new StringBuilder();
 
         for (String item : menuItems) {
-            if (result.length() > 0) result.append("|");
+            if (result.length() > 0) {
+                result.append("|");
+            }
+
             result.append(item);
         }
 
-        prefs.edit().putString("menu", result.toString()).apply();
+        prefs.edit()
+            .putString("menu", result.toString())
+            .apply();
+    }
+
+    private GradientDrawable buttonBackground() {
+        GradientDrawable background = new GradientDrawable();
+
+        background.setColor(accent());
+        background.setCornerRadius(dp(18));
+
+        return background;
     }
 
     private void setupPage(String title) {
+
         page = new LinearLayout(this);
         page.setOrientation(LinearLayout.VERTICAL);
         page.setGravity(Gravity.CENTER);
-        page.setPadding(25, 25, 25, 25);
+        page.setPadding(dp(25), dp(25), dp(25), dp(25));
         page.setBackgroundColor(Color.BLACK);
 
         TextView heading = new TextView(this);
+
         heading.setText(title);
         heading.setTextColor(accent());
         heading.setTextSize(30);
         heading.setTypeface(null, Typeface.BOLD);
         heading.setGravity(Gravity.CENTER);
-        heading.setPadding(10, 15, 10, 25);
+        heading.setPadding(dp(10), dp(15), dp(10), dp(25));
 
         page.addView(heading);
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
 
-        LinearLayout content = new LinearLayout(this);
+        content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setGravity(Gravity.CENTER);
 
@@ -114,27 +156,21 @@ public class MainActivity extends Activity {
 
         page.addView(scroll, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            0, 1
+            0,
+            1
         ));
 
         setContentView(page);
-
-        this.content = content;
     }
 
-    private LinearLayout content;
-
     private void addButton(String label, Runnable action) {
+
         Button button = new Button(this);
 
         button.setText(label);
         button.setTextSize(buttonSize);
         button.setTextColor(Color.BLACK);
-
-        GradientDrawable background = new GradientDrawable();
-        background.setColor(accent());
-        background.setCornerRadius(20);
-        button.setBackground(background);
+        button.setBackground(buttonBackground());
 
         LinearLayout.LayoutParams params =
             new LinearLayout.LayoutParams(
@@ -142,19 +178,30 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT
             );
 
-        params.setMargins(0, 7, 0, 7);
+        params.setMargins(0, dp(7), 0, dp(7));
 
         content.addView(button, params);
 
         button.setOnClickListener(v -> action.run());
     }
 
+    private int dp(float value) {
+        return (int) (
+            value * getResources()
+                .getDisplayMetrics().density + 0.5f
+        );
+    }
+
+    // MAIN MENU
+
     private void showHome() {
-        root = new FrameLayout(this);
+
+        FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.BLACK);
 
         TextView title = new TextView(this);
-        title.setText("STRA YEDX 2.0");
+
+        title.setText("STRA YEDX 2.1");
         title.setTextColor(accent());
         title.setTextSize(30);
         title.setTypeface(null, Typeface.BOLD);
@@ -163,7 +210,7 @@ public class MainActivity extends Activity {
         FrameLayout.LayoutParams titleParams =
             new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                100,
+                dp(85),
                 Gravity.TOP
             );
 
@@ -177,201 +224,397 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT
             );
 
-        areaParams.topMargin = 100;
+        areaParams.topMargin = dp(85);
+        areaParams.bottomMargin = dp(85);
+
         root.addView(menuArea, areaParams);
 
-        for (int i = 0; i < menuItems.size(); i++) {
-            final String item = menuItems.get(i);
-
-            Button button = makeHomeButton(item);
-
-            FrameLayout.LayoutParams params =
-                new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    65
-                );
-
-            float x = prefs.getFloat(item + "_x", 0.08f);
-            float y = prefs.getFloat(item + "_y", 0.08f + i * 0.19f);
-
-            button.setX(x * 1000);
-            button.setY(y * 1000);
-
-            menuArea.addView(button, params);
-
-            button.post(() -> {
-                float savedX = prefs.getFloat(item + "_x", 0.08f);
-                float savedY = prefs.getFloat(
-                    item + "_y", 0.08f + menuItems.indexOf(item) * 0.19f
-                );
-
-                button.setX(savedX * Math.max(1, menuArea.getWidth()));
-                button.setY(savedY * Math.max(1, menuArea.getHeight()));
-            });
-
-            enableDragging(button, item, menuArea);
-        }
-
-        Button customize = makeHomeButton("CUSTOMIZE LAYOUT");
+        Button customize = makeButton("CUSTOMIZE LAYOUT");
 
         FrameLayout.LayoutParams customizeParams =
             new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                65,
+                dp(60),
                 Gravity.BOTTOM
             );
 
-        customizeParams.setMargins(20, 0, 20, 20);
+        customizeParams.setMargins(
+            dp(20), 0, dp(20), dp(15)
+        );
+
         root.addView(customize, customizeParams);
 
         customize.setOnClickListener(v -> showCustomize());
 
         setContentView(root);
+
+        menuArea.post(() -> {
+
+            int areaWidth = menuArea.getWidth();
+            int areaHeight = menuArea.getHeight();
+
+            int buttonWidth = (int)(areaWidth * 0.80f);
+            int buttonHeight = dp(58);
+
+            for (int i = 0; i < menuItems.size(); i++) {
+
+                String item = menuItems.get(i);
+
+                Button button = makeButton(item);
+
+                FrameLayout.LayoutParams params =
+                    new FrameLayout.LayoutParams(
+                        buttonWidth,
+                        buttonHeight
+                    );
+
+                menuArea.addView(button, params);
+
+                float defaultX = 0.5f;
+                float defaultY = (float)i /
+                    Math.max(1, menuItems.size());
+
+                float savedX = prefs.getFloat(
+                    item + "_x", defaultX
+                );
+
+                float savedY = prefs.getFloat(
+                    item + "_y", defaultY
+                );
+
+                float x = savedX *
+                    Math.max(0, areaWidth - buttonWidth);
+
+                float y = savedY *
+                    Math.max(0, areaHeight - buttonHeight);
+
+                button.setX(x);
+                button.setY(y);
+
+                enableDragging(button, item, menuArea);
+            }
+        });
     }
 
-    private Button makeHomeButton(String label) {
+    private Button makeButton(String label) {
+
         Button button = new Button(this);
 
         button.setText(label);
         button.setTextSize(buttonSize);
         button.setTextColor(Color.BLACK);
-
-        GradientDrawable background = new GradientDrawable();
-        background.setColor(accent());
-        background.setCornerRadius(20);
-
-        button.setBackground(background);
+        button.setBackground(buttonBackground());
 
         return button;
     }
+
+    // DRAGGING
 
     private void enableDragging(
         Button button,
         String name,
         FrameLayout area
     ) {
-        button.setOnTouchListener(new View.OnTouchListener() {
 
-            float startX, startY;
-            float downX, downY;
-            boolean moved = false;
+        final int threshold =
+            ViewConfiguration.get(this).getScaledTouchSlop();
 
-            @Override
-            public boolean onTouch(View view, MotionEvent event) {
+        button.setOnTouchListener((view, event) -> {
 
-                switch (event.getAction()) {
+            switch (event.getAction()) {
 
-                    case MotionEvent.ACTION_DOWN:
-                        startX = view.getX();
-                        startY = view.getY();
-                        downX = event.getRawX();
-                        downY = event.getRawY();
-                        moved = false;
-                        return true;
+                case MotionEvent.ACTION_DOWN:
 
-                    case MotionEvent.ACTION_MOVE:
+                    view.setTag(new float[] {
+                        view.getX(),
+                        view.getY(),
+                        event.getRawX(),
+                        event.getRawY()
+                    });
 
-                        float dx = event.getRawX() - downX;
-                        float dy = event.getRawY() - downY;
+                    return true;
 
-                        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-                            moved = true;
-                        }
+                case MotionEvent.ACTION_MOVE:
 
-                        if (moved) {
-                            float newX = Math.max(
-                                0,
-                                Math.min(
-                                    startX + dx,
-                                    area.getWidth() - view.getWidth()
-                                )
+                    float[] start =
+                        (float[])view.getTag();
+
+                    if (start == null) return true;
+
+                    float dx = event.getRawX() - start[2];
+                    float dy = event.getRawY() - start[3];
+
+                    if (Math.abs(dx) > threshold ||
+                        Math.abs(dy) > threshold) {
+
+                        float newX = start[0] + dx;
+                        float newY = start[1] + dy;
+
+                        newX = Math.max(0, Math.min(
+                            newX,
+                            area.getWidth() - view.getWidth()
+                        ));
+
+                        newY = Math.max(0, Math.min(
+                            newY,
+                            area.getHeight() - view.getHeight()
+                        ));
+
+                        view.setX(newX);
+                        view.setY(newY);
+                    }
+
+                    return true;
+
+                case MotionEvent.ACTION_UP:
+
+                    float[] original =
+                        (float[])view.getTag();
+
+                    if (original == null) return true;
+
+                    float moveX =
+                        event.getRawX() - original[2];
+
+                    float moveY =
+                        event.getRawY() - original[3];
+
+                    boolean dragged =
+                        Math.abs(moveX) > threshold ||
+                        Math.abs(moveY) > threshold;
+
+                    if (dragged) {
+
+                        float x = view.getX() /
+                            Math.max(
+                                1,
+                                area.getWidth() - view.getWidth()
                             );
 
-                            float newY = Math.max(
-                                0,
-                                Math.min(
-                                    startY + dy,
-                                    area.getHeight() - view.getHeight()
-                                )
+                        float y = view.getY() /
+                            Math.max(
+                                1,
+                                area.getHeight() - view.getHeight()
                             );
 
-                            view.setX(newX);
-                            view.setY(newY);
-                        }
+                        prefs.edit()
+                            .putFloat(name + "_x", x)
+                            .putFloat(name + "_y", y)
+                            .apply();
 
-                        return true;
+                    } else {
 
-                    case MotionEvent.ACTION_UP:
+                        openMenuItem(name);
+                    }
 
-                        if (moved) {
-                            float x = view.getX() /
-                                Math.max(1, area.getWidth());
+                    view.setTag(null);
+                    return true;
 
-                            float y = view.getY() /
-                                Math.max(1, area.getHeight());
+                case MotionEvent.ACTION_CANCEL:
 
-                            prefs.edit()
-                                .putFloat(name + "_x", x)
-                                .putFloat(name + "_y", y)
-                                .apply();
-                        } else {
-                            openMenuItem(name);
-                        }
-
-                        return true;
-                }
-
-                return true;
+                    view.setTag(null);
+                    return true;
             }
+
+            return true;
         });
     }
 
     private void openMenuItem(String name) {
-        if (name.equals("TOOLS")) showTools();
-        else if (name.equals("SETTINGS")) showSettings();
-        else if (name.equals("ABOUT")) showAbout();
-        else if (name.equals("EXIT")) finish();
-        else showMessage(name, "Custom StrayedX menu button.");
+
+        if (name.equals("TOOLS")) {
+            showTools();
+        } else if (name.equals("CHEATS")) {
+            showCheats();
+        } else if (name.equals("SETTINGS")) {
+            showSettings();
+        } else if (name.equals("ABOUT")) {
+            showAbout();
+        } else if (name.equals("EXIT")) {
+            finish();
+        } else {
+            showMessage(name, "Custom StrayedX menu button.");
+        }
     }
 
+    // CHEATS
+
+    private void showCheats() {
+
+        setupPage("CHEATS");
+
+        addButton("HIDDEN LASERS", () ->
+            showHiddenLasers()
+        );
+
+        addButton("CHEAT REFERENCE", () ->
+            showMessage(
+                "CHEAT REFERENCE",
+                "Save and organize game codes and commands here."
+            )
+        );
+
+        addButton("CUSTOM CHEAT NOTES", () ->
+            showCheatNotes()
+        );
+
+        addButton("GAME TIPS", () ->
+            showMessage(
+                "GAME TIPS",
+                "Keep your useful game tips and shortcuts here."
+            )
+        );
+
+        addButton("BACK", () -> showHome());
+    }
+
+    private void showHiddenLasers() {
+
+        setupPage("HIDDEN LASERS");
+
+        TextView explanation = new TextView(this);
+
+        explanation.setText(
+            "Laser preferences\n\n" +
+            "These settings are saved in StrayedX. " +
+            "They do not activate an aiming laser inside Strayed."
+        );
+
+        explanation.setTextColor(Color.WHITE);
+        explanation.setTextSize(17);
+        explanation.setGravity(Gravity.CENTER);
+        explanation.setPadding(dp(10), dp(10), dp(10), dp(20));
+
+        content.addView(explanation);
+
+        addButton(
+            hiddenLasers ? "LASERS: ON" : "LASERS: OFF",
+            () -> {
+                hiddenLasers = !hiddenLasers;
+                saveSettings();
+                showHiddenLasers();
+            }
+        );
+
+        addButton("LASER COLOR: GREEN", () -> {
+            laserColor = 0;
+            saveSettings();
+            showHiddenLasers();
+        });
+
+        addButton("LASER COLOR: RED", () -> {
+            laserColor = 1;
+            saveSettings();
+            showHiddenLasers();
+        });
+
+        addButton("LASER COLOR: BLUE", () -> {
+            laserColor = 2;
+            saveSettings();
+            showHiddenLasers();
+        });
+
+        addButton("LASER COLOR: GOLD", () -> {
+            laserColor = 3;
+            saveSettings();
+            showHiddenLasers();
+        });
+
+        addButton("BACK", () -> showCheats());
+    }
+
+    private void showCheatNotes() {
+
+        setupPage("CUSTOM CHEAT NOTES");
+
+        EditText notes = new EditText(this);
+
+        notes.setTextColor(Color.WHITE);
+        notes.setHintTextColor(Color.GRAY);
+        notes.setHint("Enter cheat codes or commands...");
+        notes.setGravity(Gravity.TOP);
+        notes.setMinLines(8);
+
+        notes.setText(
+            prefs.getString("cheatNotes", "")
+        );
+
+        content.addView(notes);
+
+        addButton("SAVE CHEAT NOTES", () -> {
+
+            prefs.edit()
+                .putString(
+                    "cheatNotes",
+                    notes.getText().toString()
+                )
+                .apply();
+
+            Toast.makeText(
+                this,
+                "Cheat notes saved!",
+                Toast.LENGTH_SHORT
+            ).show();
+        });
+
+        addButton("BACK", () -> showCheats());
+    }
+
+    // CUSTOMIZATION
+
     private void showCustomize() {
+
         setupPage("CUSTOMIZE LAYOUT");
 
-        addButton("CHANGE THEME", () -> {
+        addButton("CHANGE THEME: " + colorNames[theme], () -> {
+
             theme++;
-            if (theme >= colors.length) theme = 0;
+
+            if (theme >= colors.length) {
+                theme = 0;
+            }
+
             saveSettings();
             showCustomize();
         });
 
         addButton("BUTTON SIZE: " + buttonSize, () -> {
+
             buttonSize += 2;
-            if (buttonSize > 30) buttonSize = 12;
+
+            if (buttonSize > 30) {
+                buttonSize = 12;
+            }
+
             saveSettings();
             showCustomize();
         });
 
-        addButton("DRAG BUTTONS ON HOME SCREEN", () -> {
-            Toast.makeText(
-                this,
-                "Return home and drag any menu button.",
-                Toast.LENGTH_LONG
-            ).show();
+        addButton("DRAG BUTTONS ON HOME SCREEN", () ->
+            showHome()
+        );
 
-            showHome();
-        });
+        addButton("ADD CUSTOM BUTTON", () ->
+            addCustomButton()
+        );
 
-        addButton("ADD CUSTOM BUTTON", () -> addCustomButton());
+        addButton("REARRANGE MENU", () ->
+            showRearrange()
+        );
 
-        addButton("REARRANGE MENU", () -> showRearrange());
+        addButton("RESET BUTTON POSITIONS", () -> {
 
-        addButton("RESET LAYOUT", () -> {
             for (String item : menuItems) {
                 prefs.edit()
                     .remove(item + "_x")
                     .remove(item + "_y")
                     .apply();
             }
+
+            showHome();
+        });
+
+        addButton("RESET APPEARANCE", () -> {
 
             theme = 0;
             buttonSize = 18;
@@ -384,9 +627,11 @@ public class MainActivity extends Activity {
     }
 
     private void addCustomButton() {
+
         setupPage("ADD CUSTOM BUTTON");
 
         EditText input = new EditText(this);
+
         input.setHint("Enter button name");
         input.setTextColor(Color.WHITE);
         input.setHintTextColor(Color.GRAY);
@@ -394,17 +639,19 @@ public class MainActivity extends Activity {
         content.addView(input);
 
         addButton("CREATE BUTTON", () -> {
+
             String name = input.getText().toString().trim();
 
-            if (!name.isEmpty() &&
-                !menuItems.contains(name) &&
-                !name.contains("|")) {
+            if (!name.isEmpty()
+                && !menuItems.contains(name)
+                && !name.contains("|")) {
 
                 menuItems.add(name);
                 saveMenu();
                 showHome();
 
             } else {
+
                 Toast.makeText(
                     this,
                     "Enter a unique button name.",
@@ -417,29 +664,48 @@ public class MainActivity extends Activity {
     }
 
     private void showRearrange() {
+
         setupPage("REARRANGE MENU");
 
         for (int i = 0; i < menuItems.size(); i++) {
+
             final int index = i;
+            String item = menuItems.get(i);
 
-            addButton("MOVE " + menuItems.get(i) + " UP", () -> {
+            addButton("MOVE " + item + " UP", () -> {
+
                 if (index > 0) {
-                    Collections.swap(menuItems, index, index - 1);
+
+                    Collections.swap(
+                        menuItems,
+                        index,
+                        index - 1
+                    );
+
                     saveMenu();
                     showRearrange();
                 }
             });
 
-            addButton("MOVE " + menuItems.get(i) + " DOWN", () -> {
+            addButton("MOVE " + item + " DOWN", () -> {
+
                 if (index < menuItems.size() - 1) {
-                    Collections.swap(menuItems, index, index + 1);
+
+                    Collections.swap(
+                        menuItems,
+                        index,
+                        index + 1
+                    );
+
                     saveMenu();
                     showRearrange();
                 }
             });
 
-            if (!isDefault(menuItems.get(i))) {
-                addButton("REMOVE " + menuItems.get(i), () -> {
+            if (!isDefault(item)) {
+
+                addButton("REMOVE " + item, () -> {
+
                     menuItems.remove(index);
                     saveMenu();
                     showRearrange();
@@ -451,13 +717,18 @@ public class MainActivity extends Activity {
     }
 
     private boolean isDefault(String name) {
+
         for (String item : defaults) {
             if (item.equals(name)) return true;
         }
+
         return false;
     }
 
+    // TOOLS
+
     private void showTools() {
+
         setupPage("TOOLS");
 
         addButton("QUICK NOTES", () -> showNotes());
@@ -468,9 +739,11 @@ public class MainActivity extends Activity {
     }
 
     private void showNotes() {
+
         setupPage("QUICK NOTES");
 
         EditText notes = new EditText(this);
+
         notes.setTextColor(Color.WHITE);
         notes.setHintTextColor(Color.GRAY);
         notes.setHint("Write your notes here...");
@@ -484,8 +757,12 @@ public class MainActivity extends Activity {
         content.addView(notes);
 
         addButton("SAVE NOTES", () -> {
+
             prefs.edit()
-                .putString("notes", notes.getText().toString())
+                .putString(
+                    "notes",
+                    notes.getText().toString()
+                )
                 .apply();
 
             Toast.makeText(
@@ -499,6 +776,7 @@ public class MainActivity extends Activity {
     }
 
     private void showChecklist() {
+
         setupPage("CHECKLIST");
 
         String[] tasks = {
@@ -509,6 +787,7 @@ public class MainActivity extends Activity {
         };
 
         for (String task : tasks) {
+
             CheckBox checkBox = new CheckBox(this);
 
             checkBox.setText(task);
@@ -518,16 +797,20 @@ public class MainActivity extends Activity {
                 prefs.getBoolean("check_" + task, false)
             );
 
-            checkBox.setOnCheckedChangeListener((button, checked) -> {
-                prefs.edit()
-                    .putBoolean("check_" + task, checked)
-                    .apply();
-            });
+            checkBox.setOnCheckedChangeListener(
+                (button, checked) -> {
+
+                    prefs.edit()
+                        .putBoolean("check_" + task, checked)
+                        .apply();
+                }
+            );
 
             content.addView(checkBox);
         }
 
         addButton("RESET CHECKLIST", () -> {
+
             for (String task : tasks) {
                 prefs.edit()
                     .remove("check_" + task)
@@ -540,16 +823,24 @@ public class MainActivity extends Activity {
         addButton("BACK", () -> showTools());
     }
 
+    // SETTINGS
+
     private void showSettings() {
+
         setupPage("SETTINGS");
 
-        addButton("CUSTOMIZE LAYOUT", () -> showCustomize());
+        addButton("CUSTOMIZE LAYOUT", () ->
+            showCustomize()
+        );
 
         addButton("RESET ALL SETTINGS", () -> {
+
             prefs.edit().clear().apply();
 
             theme = 0;
             buttonSize = 18;
+            hiddenLasers = false;
+            laserColor = 0;
 
             menuItems.clear();
             Collections.addAll(menuItems, defaults);
@@ -563,13 +854,17 @@ public class MainActivity extends Activity {
         addButton("BACK", () -> showHome());
     }
 
+    // ABOUT
+
     private void showAbout() {
+
         setupPage("ABOUT");
 
-        addButton("STRA YEDX 2.0", () ->
+        addButton("STRAYEDX 2.1", () ->
             showMessage(
                 "ABOUT",
-                "StrayedX Ultimate 2.0\nStandalone Quest companion app."
+                "StrayedX Ultimate 2.1\n" +
+                "Standalone Quest companion app."
             )
         );
 
@@ -577,9 +872,11 @@ public class MainActivity extends Activity {
     }
 
     private void showMessage(String title, String message) {
+
         setupPage(title);
 
         TextView text = new TextView(this);
+
         text.setText(message);
         text.setTextColor(Color.WHITE);
         text.setTextSize(20);
