@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.strayedx">
+
+    <application
+        android:label="StrayedX"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+
+    </application>
+
+</manifest>
