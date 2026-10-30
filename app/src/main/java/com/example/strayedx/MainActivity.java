@@ -4,15 +4,14 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Button;
+import android.view.ViewGroup;
 
 public class MainActivity extends Activity {
 
-    LinearLayout layout;
-    TextView info;
+    private LinearLayout layout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,7 +19,7 @@ public class MainActivity extends Activity {
         showHome();
     }
 
-    private void showHome() {
+    private void setupPage(String titleText) {
         layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER);
@@ -28,43 +27,95 @@ public class MainActivity extends Activity {
         layout.setBackgroundColor(Color.BLACK);
 
         TextView title = new TextView(this);
-        title.setText("STRA YEDX");
-        title.setTextSize(34);
+        title.setText(titleText);
+        title.setTextSize(30);
         title.setTextColor(Color.GREEN);
         title.setGravity(Gravity.CENTER);
-
-        info = new TextView(this);
-        info.setText("STANDALONE QUEST MENU");
-        info.setTextSize(18);
-        info.setTextColor(Color.WHITE);
-        info.setGravity(Gravity.CENTER);
+        title.setPadding(10, 20, 10, 30);
 
         layout.addView(title);
-        layout.addView(info);
-
-        addMenuButton("TOOLS", "Your standalone tools will go here.");
-        addMenuButton("SETTINGS", "StrayedX settings will go here.");
-        addMenuButton("ABOUT", "StrayedX - Standalone Quest Companion.");
-
         setContentView(layout);
     }
 
-    private void addMenuButton(String name, String message) {
+    private void addButton(String name, Runnable action) {
         Button button = new Button(this);
         button.setText(name);
-        button.setTextSize(18);
         button.setTextColor(Color.BLACK);
+        button.setTextSize(18);
         button.setBackgroundTintList(
             android.content.res.ColorStateList.valueOf(Color.GREEN)
         );
 
-        layout.addView(button);
+        LinearLayout.LayoutParams params =
+            new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            );
 
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                info.setText(message);
-            }
-        });
+        params.setMargins(0, 8, 0, 8);
+        layout.addView(button, params);
+
+        button.setOnClickListener(v -> action.run());
+    }
+
+    private void showHome() {
+        setupPage("STRA YEDX");
+
+        addButton("TOOLS", () -> showTools());
+        addButton("SETTINGS", () -> showSettings());
+        addButton("ABOUT", () -> showAbout());
+        addButton("EXIT", () -> finish());
+    }
+
+    private void showTools() {
+        setupPage("TOOLS");
+
+        addButton("Quick Notes", () ->
+            showMessage("QUICK NOTES",
+                "Use this area for your Strayed session notes.")
+        );
+
+        addButton("Checklist", () ->
+            showMessage("CHECKLIST",
+                "Your standalone companion checklist.")
+        );
+
+        addButton("BACK", () -> showHome());
+    }
+
+    private void showSettings() {
+        setupPage("SETTINGS");
+
+        addButton("Display: Green Theme", () ->
+            showMessage("DISPLAY",
+                "StrayedX currently uses its green theme.")
+        );
+
+        addButton("BACK", () -> showHome());
+    }
+
+    private void showAbout() {
+        setupPage("ABOUT");
+
+        addButton("StrayedX Version 1.0", () ->
+            showMessage("VERSION",
+                "You are running StrayedX version 1.0.")
+        );
+
+        addButton("BACK", () -> showHome());
+    }
+
+    private void showMessage(String title, String message) {
+        setupPage(title);
+
+        TextView text = new TextView(this);
+        text.setText(message);
+        text.setTextColor(Color.WHITE);
+        text.setTextSize(18);
+        text.setGravity(Gravity.CENTER);
+
+        layout.addView(text);
+
+        addButton("BACK", () -> showHome());
     }
 }
